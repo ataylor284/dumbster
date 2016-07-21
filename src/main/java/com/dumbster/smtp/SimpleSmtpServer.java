@@ -149,6 +149,7 @@ public final class SimpleSmtpServer implements AutoCloseable {
 	 * Main loop of the SMTP server.
 	 */
 	private void performWork() {
+		log.info("listening on port " + getPort());
 		try {
 			// Server: loop until stopped
 			while (!stopped) {
@@ -209,6 +210,7 @@ public final class SimpleSmtpServer implements AutoCloseable {
 			if (line == null) {
 				break;
 			}
+			log.debug("C: " + line);
 
 			// Create request from client input and current state
 			SmtpRequest request = SmtpRequest.createRequest(line, smtpState);
@@ -243,6 +245,7 @@ public final class SimpleSmtpServer implements AutoCloseable {
 		if (smtpResponse.getCode() > 0) {
 			int code = smtpResponse.getCode();
 			String message = smtpResponse.getMessage();
+			log.debug("S: " + code + " " + message);
 			out.print(code + " " + message + "\r\n");
 			out.flush();
 		}
