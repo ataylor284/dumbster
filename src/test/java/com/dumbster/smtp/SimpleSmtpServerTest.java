@@ -59,7 +59,7 @@ public class SimpleSmtpServerTest {
 		assertThat(emails, hasSize(1));
 		SmtpMessage email = emails.get(0);
 		assertThat(email.getHeaderValue("Subject"), is("Test"));
-		assertThat(email.getBody(), is("Test Body"));
+		assertThat(email.getBody(), is("Test Body\n"));
 		assertThat(email.getHeaderNames(), hasItem("Date"));
 		assertThat(email.getHeaderNames(), hasItem("From"));
 		assertThat(email.getHeaderNames(), hasItem("To"));
@@ -82,13 +82,13 @@ public class SimpleSmtpServerTest {
 
 	@Test
 	public void testSendMessageWithCR() throws MessagingException {
-		String bodyWithCR = "\n\nKeep these pesky carriage returns\n\n";
+		String bodyWithCR = "\n\nKeep these pesky\ncarriage returns\n\n";
 		sendMessage(server.getPort(), "sender@hereagain.com", "CRTest", bodyWithCR, "receivingagain@there.com");
 
 		List<SmtpMessage> emails = server.getReceivedEmails();
 		assertThat(emails, hasSize(1));
 		SmtpMessage email = emails.get(0);
-		assertEquals(bodyWithCR, email.getBody());
+		assertEquals(bodyWithCR + "\n", email.getBody());
 	}
 
 	@Test
@@ -162,7 +162,24 @@ public class SimpleSmtpServerTest {
 		assertThat(emails, hasSize(2));
 		SmtpMessage email = emails.get(0);
 		assertTrue(email.getHeaderValue("Subject").equals("Test"));
-		assertTrue(email.getBody().equals("Test Body"));
+		assertTrue(email.getBody().equals("Test Body\n"));
+	}
+
+	@Test
+	public void testSendMsgWithHeaderContinuation() throws Exception {
+		Properties mailProps = getMailProperties(server.getPort());
+		Session session = Session.getInstance(mailProps, null);
+
+		MimeMessage msg = createMessage(session, "sender@hereagain.com", "receivingagain@there.com", "headerWithContinuation", "body");
+		msg.addHeaderLine("X-SomeHeader: first part ");
+		msg.addHeaderLine("    second part");
+		Transport.send(msg);
+
+		List<SmtpMessage> emails = server.getReceivedEmails();
+		assertThat(emails, hasSize(1));
+		SmtpMessage email = emails.get(0);
+		assertEquals(email.getHeaderValue("X-SomeHeader"), "first part second part");
+		assertEquals(email.getBody(), "body\n");
 	}
 
 	private Properties getMailProperties(int port) {
